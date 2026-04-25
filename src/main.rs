@@ -119,7 +119,7 @@ fn update(
 
     gizmos.sphere(Vec3::new(0.0, rest, 0.0), 1.0, Color::BLACK);
 
-    if let Some(hit) = spatial_query.cast_ray(origin, Dir3::NEG_Y, 2000.0, false, &filter) {
+    if let Some(hit) = spatial_query.cast_ray(origin, Dir3::NEG_Y, 20.0, false, &filter) {
         info!(hit.distance);
 
         let end_force = spring(hit.distance, rest, strength, damping_f, vel.y) * Dir3::Y;
