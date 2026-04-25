@@ -42,7 +42,9 @@ fn setup(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut scattering_mediums: ResMut<Assets<ScatteringMedium>>,
+    mut physics_time: ResMut<Time<Physics>>,
 ) {
+    physics_time.pause();
     let cascade = CascadeShadowConfigBuilder {
         maximum_distance: 5000.0,
         ..Default::default()
@@ -86,7 +88,7 @@ fn setup(
         Collider::sphere(0.5),
         RigidBody::Dynamic,
         Mesh3d(meshes.add(Sphere::new(0.5))),
-        Transform::from_xyz(0.0, 3.2, 0.0),
+        Transform::from_xyz(0.0, 8.0, 0.0),
         MeshMaterial3d(materials.add(StandardMaterial::default())),
         Mass(10_000.0),
         SpringObject,
@@ -96,20 +98,29 @@ fn setup(
 fn update(
     mut query: Single<(Forces, &GlobalTransform), With<SpringObject>>,
     spatial_query: SpatialQuery,
+    mut gizmos: Gizmos,
+    mut physics_time: ResMut<Time<Physics>>,
+    keyboard_input: Res<'_, ButtonInput<KeyCode>>,
 ) {
+    if keyboard_input.just_pressed(KeyCode::KeyP) {
+        physics_time.unpause();
+    }
+
     let transform = *query.1;
     let force = &mut query.0;
 
     let vel = force.linear_velocity();
-    let origin = transform.translation() + Vec3::new(2.0, -0.0, 0.0);
+    let origin = transform.translation() + Vec3::new(2.0, 0.0, 0.0);
     let filter = SpatialQueryFilter::default();
+
+    let rest = 4.0;
+    let strength = 1_000_000.0;
+    let damping_f = 50_000.0;
+
+    gizmos.sphere(Vec3::new(0.0, rest, 0.0), 1.0, Color::BLACK);
 
     if let Some(hit) = spatial_query.cast_ray(origin, Dir3::NEG_Y, 2000.0, false, &filter) {
         info!(hit.distance);
-
-        let rest = 4.0;
-        let strength = 20.0;
-        let damping_f = 1.1;
 
         let end_force = spring(hit.distance, rest, strength, damping_f, vel.y) * Dir3::Y;
         info!("{}", &end_force);
@@ -125,9 +136,13 @@ fn spring(
     velocity: f32,
 ) -> f32 {
     let offset = rest_length - distance;
-    let spring = offset * strength;
 
-    let damping = velocity * damping_factor;
+    if offset >= 0.0 {
+        let spring = offset * strength;
 
-    spring - damping
+        let damping = velocity * damping_factor;
+
+        return spring - damping;
+    }
+    0.0
 }
