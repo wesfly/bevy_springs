@@ -88,6 +88,7 @@ fn setup(
         Mesh3d(meshes.add(Sphere::new(0.5))),
         Transform::from_xyz(0.0, 3.2, 0.0),
         MeshMaterial3d(materials.add(StandardMaterial::default())),
+        Mass(10_000.0),
         SpringObject,
     ));
 }
